@@ -44,9 +44,10 @@ lossGameText.anchor.set(0.5)
 const newGameTextLoss = createNewGameText(app)
 const lossScene = createLossScene(lossGameText, newGameTextLoss)
 
-const gameScene = new PIXI.Container()
+let gameScene = new PIXI.Container()
 
 function createGameScene(gameScene, app, lossGameText, winGameText) {
+	gameScene.removeChildren()
 	const player = new PIXI.Container()
 	const enemy = new PIXI.Container()
 	const diamonds = new PIXI.Container()
@@ -68,7 +69,6 @@ function createGameScene(gameScene, app, lossGameText, winGameText) {
 	enemy.addChild(animatedEnemySprite)
 
 	const diamondsCount = 10
-	let collectedDiamonds = 0
 	for (let i = 0; i < diamondsCount; i++) {
 		const diamond = createDiamond(app)
 		diamonds.addChild(diamond)
@@ -77,7 +77,7 @@ function createGameScene(gameScene, app, lossGameText, winGameText) {
 	const diamondCounterText = createGameSceneText(
 		0,
 		0,
-		`Diamonds: ${collectedDiamonds}`
+		`Diamonds: ${totalDiamonds}`
 	)
 	gameScene.addChild(diamondCounterText)
 
@@ -88,22 +88,31 @@ function createGameScene(gameScene, app, lossGameText, winGameText) {
 		tryToMovePlayer(keysMap, animatedPlayerSprite, app, delay)
 		tryToMoveEnemy(animatedEnemySprite, animatedPlayerSprite, delay)
 		checkCollisionDiamonds(animatedPlayerSprite, diamonds, () => {
-			collectedDiamonds++
-			diamondCounterText.text = `Diamonds: ${collectedDiamonds}`
+			totalDiamonds++
+			diamondCounterText.text = `Diamonds: ${totalDiamonds}`
 		})
-		totalDiamonds = collectedDiamonds
-		const finish = checkCollisionEnemy(
-			animatedPlayerSprite,
-			animatedEnemySprite
-		)
-		if (finish) {
+		if (checkCollisionEnemy(animatedPlayerSprite, animatedEnemySprite)) {
 			state = scenes.loss
 			lossGameText.text = `Game Over. Total Score: ${totalDiamonds}`
+			resetElements(
+				animatedPlayerSprite,
+				animatedEnemySprite,
+				diamonds,
+				diamondCounterText,
+				app
+			)
 			app.stage.removeChild(gameScene)
 		}
-		if (collectedDiamonds === diamondsCount) {
+		if (totalDiamonds === diamondsCount) {
 			state = scenes.win
 			winGameText.text = `You won! Total Score: ${totalDiamonds}`
+			resetElements(
+				animatedPlayerSprite,
+				animatedEnemySprite,
+				diamonds,
+				diamondCounterText,
+				app
+			)
 			app.stage.removeChild(gameScene)
 		}
 	}
@@ -117,25 +126,17 @@ startGameText.on('click', () => {
 	app.stage.addChild(gameScene)
 })
 
-// newGameTextWin.on('click', () => {
-// 	console.log('win')
-// 	state = scenes.game
-// 	app.stage.removeChild(mainScene)
-// 	app.stage.removeChild(lossScene)
-// 	app.stage.removeChild(winScene)
-// 	app.stage.addChild(gameScene)
-// 	gameScene.removeChildren()
-// 	updateScene()
-// })
+newGameTextWin.on('click', () => {
+	state = scenes.game
+	app.stage.removeChild(winScene)
+	app.stage.addChild(gameScene)
+})
 
-// newGameTextLoss.on('click', () => {
-// 	console.log('loss')
-// 	state = scenes.game
-// 	app.stage.removeChild(lossScene)
-// 	app.stage.addChild(gameScene)
-// 	gameScene.removeChildren()
-// 	createGameScene(gameScene, app, lossGameText, winGameText)
-// })
+newGameTextLoss.on('click', () => {
+	state = scenes.game
+	app.stage.removeChild(lossScene)
+	app.stage.addChild(gameScene)
+})
 
 app.ticker.add(delay => {
 	if (state === scenes.game) {
@@ -151,3 +152,28 @@ app.ticker.add(delay => {
 		app.stage.addChild(winScene)
 	}
 })
+
+function resetElements(
+	animatedPlayerSprite,
+	animatedEnemySprite,
+	diamonds,
+	diamondCounterText,
+	app
+) {
+	animatedPlayerSprite.position.x = 44
+	animatedPlayerSprite.position.y = app.view.height / 2 - 40
+	animatedPlayerSprite.scale.x = -1
+
+	animatedEnemySprite.position.x = app.view.width
+	animatedEnemySprite.position.y = app.view.height / 2 - 98
+
+	totalDiamonds = 0
+	diamondCounterText.text = `Diamonds: ${totalDiamonds}`
+
+	diamonds.removeChildren()
+	const diamondsCount = 10
+	for (let i = 0; i < diamondsCount; i++) {
+		const diamond = createDiamond(app)
+		diamonds.addChild(diamond)
+	}
+}
